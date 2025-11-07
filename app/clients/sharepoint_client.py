@@ -103,7 +103,7 @@ class SharePointClient:
         
         # Cache the site ID
         self._site_id = site_id
-        print(f"[SharePoint] Got and cached site ID: {site_id}")
+        # print(f"[SharePoint] Got and cached site ID: {site_id}")
         return site_id
     
     def download_file_by_id(self, file_id: str, use_cache: bool = False) -> bytes:
@@ -128,9 +128,6 @@ class SharePointClient:
                 print(f"[CACHE] Using cached version of file ID: {file_id}")
                 return cache_entry['content']
         
-        if not use_cache:
-            print(f"[NO CACHE] Downloading file by ID: {file_id}")
-        
         # Get site ID first
         site_id = self._get_site_id()
         
@@ -140,8 +137,6 @@ class SharePointClient:
         # Construct the SharePoint file download URL using document ID
         # Format: /sites/{site-id}/drive/items/{item-id}/content
         endpoint = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/items/{file_id}/content"
-        
-        print(f"[SharePoint] Downloading from: {endpoint}")
         
         headers = {
             "Authorization": f"Bearer {access_token}"
@@ -163,8 +158,6 @@ class SharePointClient:
                 'timestamp': time.time()
             }
             print(f"[CACHE] Downloaded and cached file ID: {file_id}")
-        else:
-            print(f"[SUCCESS] Downloaded file by ID: {file_id}")
         
         return content
     

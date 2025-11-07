@@ -64,8 +64,17 @@ _rule_5_module = importlib.util.module_from_spec(_spec_5)
 _spec_5.loader.exec_module(_rule_5_module)
 DiscountRemarkValidator = _rule_5_module.DiscountRemarkValidator
 
+# Import ReturnReasonValidator from rule-6-return_reason.py
+_spec_6 = importlib.util.spec_from_file_location(
+    "rule_6_return_reason",
+    os.path.join(_validators_dir, "rule-6-return_reason.py")
+)
+_rule_6_module = importlib.util.module_from_spec(_spec_6)
+_spec_6.loader.exec_module(_rule_6_module)
+ReturnReasonValidator = _rule_6_module.ReturnReasonValidator
+
 # Import other validators
 # TODO: Add other validator imports as they are implemented
 
-__all__ = ['OrderFetcher', 'DiscountValidator', 'CreditCardFeeValidator', 'AssemblyFeeValidator', 'DeliveryFeeValidator', 'DiscountRemarkValidator']
+__all__ = ['OrderFetcher', 'DiscountValidator', 'CreditCardFeeValidator', 'AssemblyFeeValidator', 'DeliveryFeeValidator', 'DiscountRemarkValidator', 'ReturnReasonValidator']
 

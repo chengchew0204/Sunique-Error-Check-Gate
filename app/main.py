@@ -171,7 +171,8 @@ def initialize_validators():
         CreditCardFeeValidator, 
         AssemblyFeeValidator,
         DeliveryFeeValidator,
-        DiscountRemarkValidator
+        DiscountRemarkValidator,
+        ReturnReasonValidator
     )
     
     # Rule 0: Order Data Fetcher (MUST BE FIRST!)
@@ -198,6 +199,10 @@ def initialize_validators():
     # Phase 5: Discount remark validation
     discount_remark_validator = DiscountRemarkValidator()
     validation_service.register_validator(discount_remark_validator)
+    
+    # Phase 6: Return reason validation
+    return_reason_validator = ReturnReasonValidator()
+    validation_service.register_validator(return_reason_validator)
     
     print(f"Validators initialized: {len(validation_service.validators)} registered")
 
