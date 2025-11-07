@@ -101,12 +101,15 @@ class LoggerService:
         assembly_error = 0
         delivery_fee_error = 0
         discount_remarks_error = 0
+        return_reason_error = 0
         
         for issue in issues:
             if issue.get('severity') != 'error':
                 continue
             rule = issue.get('rule', '').lower()
-            if 'remark' in rule:
+            if 'return reason' in rule:
+                return_reason_error = 1
+            elif 'remark' in rule:
                 discount_remarks_error = 1
             elif 'discount' in rule:
                 discount_error = 1
@@ -134,6 +137,7 @@ class LoggerService:
             'assembly_error': assembly_error,
             'delivery_fee_error': delivery_fee_error,
             'discount_remarks_error': discount_remarks_error,
+            'return_reason_error': return_reason_error,
             'issues_summary': issues_summary
         }
         
@@ -145,7 +149,7 @@ class LoggerService:
             fieldnames = ['timestamp', 'order_number', 'status', 'account_manager', 
                           'error_count', 'discount_error', 'credit_card_error', 
                           'assembly_error', 'delivery_fee_error', 'discount_remarks_error', 
-                          'issues_summary']
+                          'return_reason_error', 'issues_summary']
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             
             if not file_exists:
