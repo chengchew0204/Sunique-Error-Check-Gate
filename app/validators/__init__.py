@@ -55,8 +55,17 @@ _rule_4_module = importlib.util.module_from_spec(_spec_4)
 _spec_4.loader.exec_module(_rule_4_module)
 DeliveryFeeValidator = _rule_4_module.DeliveryFeeValidator
 
+# Import DiscountRemarkValidator from rule-5-discount_remark.py
+_spec_5 = importlib.util.spec_from_file_location(
+    "rule_5_discount_remark",
+    os.path.join(_validators_dir, "rule-5-discount_remark.py")
+)
+_rule_5_module = importlib.util.module_from_spec(_spec_5)
+_spec_5.loader.exec_module(_rule_5_module)
+DiscountRemarkValidator = _rule_5_module.DiscountRemarkValidator
+
 # Import other validators
 # TODO: Add other validator imports as they are implemented
 
-__all__ = ['OrderFetcher', 'DiscountValidator', 'CreditCardFeeValidator', 'AssemblyFeeValidator', 'DeliveryFeeValidator']
+__all__ = ['OrderFetcher', 'DiscountValidator', 'CreditCardFeeValidator', 'AssemblyFeeValidator', 'DeliveryFeeValidator', 'DiscountRemarkValidator']
 
