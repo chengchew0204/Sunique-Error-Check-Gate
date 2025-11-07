@@ -1,0 +1,63 @@
+# Serverless Framework Configuration
+# For AWS Lambda deployment
+
+service: inflow-error-check-gate
+
+provider:
+  name: aws
+  runtime: python3.9
+  stage: ${opt:stage, 'dev'}
+  region: us-east-1
+  memorySize: 512
+  timeout: 30
+  
+  environment:
+    INFLOW_API_KEY: ${env:INFLOW_API_KEY}
+    INFLOW_COMPANY_ID: ${env:INFLOW_COMPANY_ID}
+    INFLOW_API_BASE_URL: ${env:INFLOW_API_BASE_URL}
+    WEBHOOK_SECRET: ${env:WEBHOOK_SECRET}
+    ONEDRIVE_CLIENT_ID: ${env:ONEDRIVE_CLIENT_ID}
+    ONEDRIVE_CLIENT_SECRET: ${env:ONEDRIVE_CLIENT_SECRET}
+    ONEDRIVE_TENANT_ID: ${env:ONEDRIVE_TENANT_ID}
+    OUTLOOK_CLIENT_ID: ${env:OUTLOOK_CLIENT_ID}
+    OUTLOOK_CLIENT_SECRET: ${env:OUTLOOK_CLIENT_SECRET}
+    OUTLOOK_TENANT_ID: ${env:OUTLOOK_TENANT_ID}
+    ADMIN_EMAILS: ${env:ADMIN_EMAILS}
+    DELIVERY_RECORD_FILE_PATH: ${env:DELIVERY_RECORD_FILE_PATH}
+    CREDIT_CARD_FEE_PERCENTAGE: ${env:CREDIT_CARD_FEE_PERCENTAGE}
+
+functions:
+  webhook:
+    handler: serverless/handler.lambda_handler
+    events:
+      - http:
+          path: /webhook/inflow
+          method: post
+          cors: false
+      - http:
+          path: /
+          method: get
+          cors: false
+      - http:
+          path: /validate/{order_id}
+          method: get
+          cors: false
+      - http:
+          path: /history/{order_id}
+          method: get
+          cors: false
+
+plugins:
+  - serverless-python-requirements
+
+custom:
+  pythonRequirements:
+    dockerizePip: true
+    zip: true
+    slim: true
+    strip: false
+    layer: false
+    useStaticCache: true
+    useDownloadCache: true
+    cacheLocation: .serverless/.requirements-cache
+
