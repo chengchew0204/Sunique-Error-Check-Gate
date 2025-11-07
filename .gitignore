@@ -29,6 +29,7 @@ share/python-wheels/
 .env
 .env.local
 .env.*.local
+.env.bak
 
 # IDE
 .vscode/

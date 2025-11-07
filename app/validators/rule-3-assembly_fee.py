@@ -122,13 +122,7 @@ class AssemblyFeeValidator(BaseValidator):
         order_info = fetched_data.get('order_info', {})
         line_items = fetched_data.get('line_items', [])
         
-        # (1) Check if the order is paid (case-insensitive)
-        payment_status = order_info.get('payment_status', 'N/A')
-        if payment_status.lower() != 'paid':
-            result.add_info(f"Order payment status is '{payment_status}' (not Paid) - skipping assembly fee validation")
-            return result
-        
-        # (2) Find assembly fee line item
+        # Find assembly fee line item
         assembly_fee_item = None
         for item in line_items:
             item_name = item.get('name', '').upper()

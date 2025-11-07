@@ -12,6 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # Now import and run the app
 from app.main import app, initialize_validators, config
+from app.services.error_monitor_service import error_monitor_service
 
 if __name__ == '__main__':
     # Validate basic configuration first
@@ -43,11 +44,24 @@ if __name__ == '__main__':
     # Initialize validators
     initialize_validators()
     
+    # Start error monitor service (background thread)
+    # Only start in the main process (not in Flask reloader's parent process)
+    if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+        print("\nStarting error monitor service...")
+        error_monitor_service.start()
+    else:
+        print("\nSkipping error monitor in reloader parent process...")
+    
     # Run Flask app
-    print(f"Starting InFlow Error Check Gate on port {config.FLASK_PORT}")
-    app.run(
-        host='0.0.0.0',
-        port=config.FLASK_PORT,
-        debug=config.FLASK_DEBUG
-    )
+    print(f"\nStarting InFlow Error Check Gate on port {config.FLASK_PORT}")
+    try:
+        app.run(
+            host='0.0.0.0',
+            port=config.FLASK_PORT,
+            debug=config.FLASK_DEBUG
+        )
+    finally:
+        # Stop error monitor when app shuts down
+        print("\nStopping error monitor service...")
+        error_monitor_service.stop()
 

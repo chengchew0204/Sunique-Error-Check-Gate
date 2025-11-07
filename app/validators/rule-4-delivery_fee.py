@@ -11,8 +11,7 @@ class DeliveryFeeValidator(BaseValidator):
     Check if freight fee is correctly charged for orders in the Delivery Record Form.
     
     Rules:
-    1. Only validate orders with paymentStatus = "Paid"
-    2. Check if order exists in SharePoint Delivery Record Form
+    1. Check if order exists in SharePoint Delivery Record Form
     
     IN TOWN ORDERS (from "In Town" tab):
     3a. If "Handling" is "Yes": orderFreight + z_handling fee must be >= $250
@@ -46,12 +45,6 @@ class DeliveryFeeValidator(BaseValidator):
         
         order_info = fetched_data.get('order_info', {})
         line_items = fetched_data.get('line_items', [])
-        
-        # Step 1: Check if order is paid
-        payment_status = order_info.get('payment_status', '')
-        if payment_status.lower() != 'paid':
-            result.add_info(f"Order payment status is '{payment_status}' - skipping delivery fee validation (only validates paid orders)")
-            return result
         
         order_number = order_info.get('order_number', '')
         order_freight = float(order_info.get('order_freight', '0'))

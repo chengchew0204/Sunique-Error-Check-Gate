@@ -8,6 +8,7 @@ from app.clients.inflow_client import inflow_client
 from app.services.validation_service import validation_service
 from app.services.logger_service import logger_service
 from app.services.notification_service import notification_service
+from app.services.error_monitor_service import error_monitor_service
 
 
 app = Flask(__name__)
@@ -81,24 +82,32 @@ def inflow_webhook():
         print(f"Running validation for order: {sales_order_id} ({order_number})")
         validation_result = validation_service.validate_order(order_data)
         
-        # Log validation results
+        # Log validation results (logs all statuses including pending and resolved)
         logger_service.log_validation_result(validation_result, order_data)
         
-        # Send notification if there are issues
+        # Send notification only for confirmed errors (failed) or warnings
+        # Do NOT send for 'pending' status (grace period)
         if validation_result['status'] in ['warning', 'failed']:
-            print(f"Sending notification for order: {sales_order_id} ({order_number})")
+            confirmed_count = validation_result.get('confirmed_count', 0)
+            print(f"Sending notification for order: {sales_order_id} ({order_number}) - Confirmed errors: {confirmed_count}")
             notification_service.send_validation_failure_notification(
                 validation_result,
                 order_data
             )
+        elif validation_result['status'] == 'pending':
+            pending_count = validation_result.get('pending_count', 0)
+            print(f"Order {order_number} has {pending_count} pending error(s) in 30-minute grace period - no notification sent yet")
         
-        # Return success response
+        # Return success response with tracking information
         return jsonify({
             'status': 'processed',
             'order_id': sales_order_id,
             'order_number': order_number,
             'validation_status': validation_result['status'],
-            'issues_count': len(validation_result['issues'])
+            'issues_count': len(validation_result['issues']),
+            'confirmed_count': validation_result.get('confirmed_count', 0),
+            'pending_count': validation_result.get('pending_count', 0),
+            'resolved_count': len(validation_result.get('resolved_issues', []))
         }), 200
     
     except Exception as e:
@@ -157,6 +166,41 @@ def get_validation_history(order_id: str):
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/monitor/check', methods=['POST'])
+def trigger_monitor_check():
+    """
+    Manually trigger the error monitor to check for expired errors.
+    Useful for testing or forcing immediate processing.
+    """
+    try:
+        print("Manual monitor check triggered via API")
+        error_monitor_service.trigger_check()
+        return jsonify({
+            'status': 'success',
+            'message': 'Error monitor check triggered'
+        }), 200
+    
+    except Exception as e:
+        print(f"Error triggering monitor check: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/monitor/status', methods=['GET'])
+def get_monitor_status():
+    """
+    Get the current status of the error monitor service.
+    """
+    try:
+        status = error_monitor_service.get_status()
+        return jsonify(status), 200
+    
+    except Exception as e:
+        print(f"Error getting monitor status: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 def initialize_validators():
     """
     Initialize and register all validators.
@@ -180,9 +224,9 @@ def initialize_validators():
     order_fetcher = OrderFetcher()
     validation_service.register_validator(order_fetcher)
     
-    # Phase 1: Discount validation
-    discount_validator = DiscountValidator()
-    validation_service.register_validator(discount_validator)
+    # Phase 1: Discount validation (DISABLED - code preserved for reference)
+    # discount_validator = DiscountValidator()
+    # validation_service.register_validator(discount_validator)
     
     # Phase 2: Credit card fee validation
     credit_card_validator = CreditCardFeeValidator()
@@ -218,11 +262,24 @@ if __name__ == '__main__':
     # Initialize validators
     initialize_validators()
     
+    # Start error monitor service (background thread)
+    # Only start in the main process (not in Flask reloader's parent process)
+    import os
+    if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+        print("Starting error monitor service...")
+        error_monitor_service.start()
+    else:
+        print("Skipping error monitor in reloader parent process...")
+    
     # Run Flask app
     print(f"Starting InFlow Error Check Gate on port {config.FLASK_PORT}")
-    app.run(
-        host='0.0.0.0',
-        port=config.FLASK_PORT,
-        debug=config.FLASK_DEBUG
-    )
-
+    try:
+        app.run(
+            host='0.0.0.0',
+            port=config.FLASK_PORT,
+            debug=config.FLASK_DEBUG
+        )
+    finally:
+        # Stop error monitor when app shuts down
+        print("Stopping error monitor service...")
+        error_monitor_service.stop()

@@ -8,7 +8,6 @@ class CreditCardFeeValidator(BaseValidator):
     Validator for Rule 2: Credit Card Fee Validation
     
     Verify that a 3% credit card fee is correctly applied when payment method is credit card.
-    Only for paid orders.
     """
     
     def __init__(self):
@@ -16,7 +15,7 @@ class CreditCardFeeValidator(BaseValidator):
     
     def validate(self, order_data: Dict[Any, Any]) -> ValidationResult:
         """
-        Validate credit card fee for paid orders.
+        Validate credit card fee for all orders.
         
         Args:
             order_data: Complete sales order data from InFlow
@@ -26,13 +25,7 @@ class CreditCardFeeValidator(BaseValidator):
         """
         result = ValidationResult(self.rule_name)
         
-        # Step 1: Check if order is paid
-        payment_status = order_data.get('paymentStatus', '')
-        if payment_status.lower() != 'paid':
-            result.add_info(f"Order payment status is '{payment_status}', not 'Paid'. Skipping credit card fee validation.")
-            return result
-        
-        # Step 2 & 3: Check if payment method is credit card
+        # Check if payment method is credit card
         payment_lines = order_data.get('paymentLines', [])
         
         if not payment_lines:

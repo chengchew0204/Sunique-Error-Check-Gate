@@ -196,15 +196,3 @@ class DiscountValidator(BaseValidator):
                 result.add_info(f"Includes Z_DISCOUNT: ${z_discount_amount:.2f}")
         
         return result
-
-'''
-
-My manager provided some feedback to this validator project. 
-She said the the validators should not only check for "paid" orders, as when the order is paid, there's no way to get more money from the customer.
-Instead, the validators should check for "unpaid" orders, as when the order is unpaid, there's a chance fix and prevent the issues in the order and get more money customer.
-But if the order is not paid yet, we are not sure if the account manager is still working on the order, so we should come up with a way to check for "unpaid" orders.
-For example, if a order is "saved", it might trigger an error, however, the account manager might still work on the order and fix the issues, so we should not treat it as an error.
-What do you think about this? How can we make sure the validators are not too strict and not too lenient? How can we make sure the issues are not missed?
-
-'''
-

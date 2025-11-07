@@ -29,15 +29,29 @@ class LoggerService:
             validation_result: Dictionary containing validation results with structure:
                 {
                     'order_id': str,
-                    'status': 'passed' | 'warning' | 'failed',
+                    'status': 'passed' | 'warning' | 'pending' | 'failed',
                     'timestamp': str (ISO format),
                     'issues': List[Dict],
-                    'suggested_fixes': List[str]
+                    'suggested_fixes': List[str],
+                    'resolved_issues': List[Dict] (optional),
+                    'pending_count': int (optional),
+                    'confirmed_count': int (optional)
                 }
             order_data: Complete sales order data from InFlow (optional, for CSV logging)
         """
-        # Log to CSV only
-        self._log_to_csv(validation_result, order_data)
+        # If there are resolved issues and status is 'passed', change status to 'resolved'
+        # This avoids logging two separate entries
+        resolved_issues = validation_result.get('resolved_issues', [])
+        current_status = validation_result.get('status', '')
+        
+        if resolved_issues and current_status == 'passed':
+            # Modify the validation result to show 'resolved' status
+            validation_result_copy = validation_result.copy()
+            validation_result_copy['status'] = 'resolved'
+            self._log_to_csv(validation_result_copy, order_data)
+        else:
+            # Log normally
+            self._log_to_csv(validation_result, order_data)
     
     def _log_to_json(self, validation_result: Dict[Any, Any]) -> None:
         """
@@ -94,7 +108,22 @@ class LoggerService:
         
         # Categorize errors by validator
         issues = validation_result.get('issues', [])
-        error_count = sum(1 for issue in issues if issue.get('severity') == 'error')
+        
+        # Count confirmed errors only (not pending)
+        confirmed_errors = [
+            issue for issue in issues 
+            if issue.get('severity') == 'error' and 
+            issue.get('tracking_status') == 'confirmed'
+        ]
+        error_count = len(confirmed_errors)
+        
+        # Count pending errors
+        pending_errors = [
+            issue for issue in issues 
+            if issue.get('severity') == 'error' and 
+            issue.get('tracking_status') == 'pending'
+        ]
+        pending_count = len(pending_errors)
         
         discount_error = 0
         credit_card_error = 0
@@ -103,9 +132,10 @@ class LoggerService:
         discount_remarks_error = 0
         return_reason_error = 0
         
-        for issue in issues:
-            if issue.get('severity') != 'error':
-                continue
+        # Categorize ALL errors (both confirmed and pending)
+        # The error_count vs pending_count columns distinguish between confirmed/pending
+        all_errors = confirmed_errors + pending_errors
+        for issue in all_errors:
             rule = issue.get('rule', '').lower()
             if 'return reason' in rule:
                 return_reason_error = 1
@@ -120,10 +150,20 @@ class LoggerService:
             elif 'delivery' in rule:
                 delivery_fee_error = 1
         
-        # Summarize issues (only errors, limit to first 3)
-        issues_summary = '; '.join([
-            f"{issue.get('rule', 'unknown')}: {issue.get('message', '')}"
-            for issue in issues if issue.get('severity') == 'error'
+        # Summarize confirmed errors only (limit to first 3)
+        # If status is 'resolved', leave issues_summary empty
+        if validation_result.get('status') == 'resolved':
+            issues_summary = ''
+        else:
+            issues_summary = '; '.join([
+                f"{issue.get('rule', 'unknown')}: {issue.get('message', '')}"
+                for issue in confirmed_errors
+            ][:3])
+        
+        # Summarize pending errors (limit to first 3)
+        pending_summary = '; '.join([
+            f"{issue.get('rule', 'unknown')}: {issue.get('message', '')} (pending {int(issue.get('error_age_minutes', 0))}min)"
+            for issue in pending_errors
         ][:3])
         
         row = {
@@ -132,13 +172,15 @@ class LoggerService:
             'status': validation_result.get('status', ''),
             'account_manager': account_manager,
             'error_count': error_count,
+            'pending_count': pending_count,
             'discount_error': discount_error,
             'credit_card_error': credit_card_error,
             'assembly_error': assembly_error,
             'delivery_fee_error': delivery_fee_error,
             'discount_remarks_error': discount_remarks_error,
             'return_reason_error': return_reason_error,
-            'issues_summary': issues_summary
+            'issues_summary': issues_summary,
+            'pending_summary': pending_summary
         }
         
         # Check if file exists to determine if we need to write headers
@@ -147,9 +189,9 @@ class LoggerService:
         # Write to CSV
         with open(filepath, 'a', newline='', encoding='utf-8') as f:
             fieldnames = ['timestamp', 'order_number', 'status', 'account_manager', 
-                          'error_count', 'discount_error', 'credit_card_error', 
+                          'error_count', 'pending_count', 'discount_error', 'credit_card_error', 
                           'assembly_error', 'delivery_fee_error', 'discount_remarks_error', 
-                          'return_reason_error', 'issues_summary']
+                          'return_reason_error', 'issues_summary', 'pending_summary']
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             
             if not file_exists:
@@ -157,7 +199,7 @@ class LoggerService:
             
             writer.writerow(row)
         
-        print(f"Validation result logged to CSV: {filepath} (Order: {validation_result.get('order_number', 'N/A')})")
+        print(f"Validation result logged to CSV: {filepath} (Order: {validation_result.get('order_number', 'N/A')}, Status: {validation_result.get('status', 'N/A')})")
     
     def get_validation_history(self, order_id: str) -> List[Dict[Any, Any]]:
         """

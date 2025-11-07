@@ -34,6 +34,7 @@ class NotificationService:
     ) -> None:
         """
         Send email notification for validation failures or warnings.
+        Only sends for confirmed errors, not pending ones.
         
         Args:
             validation_result: Dictionary containing validation results
@@ -41,8 +42,12 @@ class NotificationService:
         """
         status = validation_result.get('status', 'unknown')
         
-        # Only send notifications for warnings and failures
-        if status == 'passed':
+        # Only send notifications for confirmed failures and warnings
+        # Do NOT send for 'passed' or 'pending' statuses
+        if status in ['passed', 'pending']:
+            if status == 'pending':
+                pending_count = validation_result.get('pending_count', 0)
+                print(f"Skipping notification for pending errors (count: {pending_count}, waiting for 30-minute grace period)")
             return
         
         # Check if Outlook client is configured
@@ -177,16 +182,22 @@ class NotificationService:
             'failed': '#dc3545'
         }.get(status, '#6c757d')
         
-        # Build issues HTML
+        # Build issues HTML (only show confirmed errors, not pending ones)
         issues_html = ""
-        for i, issue in enumerate(issues, 1):
+        issue_counter = 0
+        for issue in issues:
+            # Skip pending errors in notification
+            if issue.get('tracking_status') == 'pending':
+                continue
+            
+            issue_counter += 1
             severity = issue.get('severity', 'error')
             severity_icon = '⚠️' if severity == 'warning' else '❌'
             severity_color = '#ffc107' if severity == 'warning' else '#dc3545'
             
             issues_html += f"""
             <div style="margin-bottom: 15px; padding: 10px; border-left: 4px solid {severity_color}; background-color: #f8f9fa;">
-                <strong>{severity_icon} Issue #{i}: {issue.get('rule', 'Unknown Rule')}</strong><br>
+                <strong>{severity_icon} Issue #{issue_counter}: {issue.get('rule', 'Unknown Rule')}</strong><br>
                 <span style="color: #6c757d;">{issue.get('message', 'No message provided')}</span>
             </div>
             """
