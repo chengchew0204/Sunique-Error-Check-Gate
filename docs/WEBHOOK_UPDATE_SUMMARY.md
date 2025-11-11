@@ -20,7 +20,7 @@ Your InFlow webhook has been updated and configured to work with your production
 
 **New Webhook Secret:**
 ```
-whsec_rHtEyQkPsy0Ipxs4lrwhiQWhEFdl14Js
+[SECRET REDACTED - Stored in AWS Lambda environment variables and local .env file]
 ```
 
 **Updated in:**
@@ -137,7 +137,7 @@ aws lambda get-function-configuration \
   --function-name inflow-error-check-gate-prod-webhook \
   --region us-east-2 | grep "WEBHOOK_SECRET"
 
-# Should show: "WEBHOOK_SECRET": "whsec_rHtEyQkPsy0Ipxs4lrwhiQWhEFdl14Js"
+# Should show: "WEBHOOK_SECRET": "whsec_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 ```
 
 ### Issue: No validation running
