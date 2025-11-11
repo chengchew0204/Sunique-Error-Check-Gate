@@ -80,23 +80,23 @@ class DiscountValidator(BaseValidator):
                     
                     total_original_price += original_price
                 
-                # Rule 1: Check if line item discount exceeds customer's default discount
-                if item['discount_is_percent'] and line_discount > customer_discount:
-                    result.add_issue(
-                        f"Line {line_number} ({item_sku} - {item_name}): "
-                        f"Discount {line_discount}% exceeds customer's allowed {customer_discount}%",
-                        severity='error',
-                        details={
-                            'line_number': line_number,
-                            'sku': item_sku,
-                            'name': item_name,
-                            'line_discount': line_discount,
-                            'customer_discount': customer_discount
-                        }
-                    )
-                    result.add_suggested_fix(
-                        f"Reduce discount on Line {line_number} ({item_name}) from {line_discount}% to {customer_discount}% or less"
-                    )
+                # Rule 1: Check if line item discount exceeds customer's default discount (DISABLED)
+                # if item['discount_is_percent'] and line_discount > customer_discount:
+                #     result.add_issue(
+                #         f"Line {line_number} ({item_sku} - {item_name}): "
+                #         f"Discount {line_discount}% exceeds customer's allowed {customer_discount}%",
+                #         severity='error',
+                #         details={
+                #             'line_number': line_number,
+                #             'sku': item_sku,
+                #             'name': item_name,
+                #             'line_discount': line_discount,
+                #             'customer_discount': customer_discount
+                #         }
+                #     )
+                #     result.add_suggested_fix(
+                #         f"Reduce discount on Line {line_number} ({item_name}) from {line_discount}% to {customer_discount}% or less"
+                #     )
                 
                 # Rule 2: TUK items should have 0% discount
                 if 'TUK' in item_name.upper() and line_discount > 0:
@@ -115,23 +115,23 @@ class DiscountValidator(BaseValidator):
                         f"Remove discount from Line {line_number} ({item_name}) - TUK items must have 0% discount"
                     )
                 
-                # Rule 3: Items starting with "Z" should have 0% discount
+                # Rule 3: Items starting with "Z" should have 0% discount (DISABLED)
                 # Exclude Z_DISCOUNT from this check as it's a special discount line item
-                if not is_z_discount_item and (item_name.startswith('Z') or item_sku.startswith('Z')) and line_discount > 0:
-                    result.add_issue(
-                        f"Line {line_number} ({item_sku} - {item_name}): "
-                        f"Items starting with 'Z' should not have discount, but has {line_discount}% discount",
-                        severity='error',
-                        details={
-                            'line_number': line_number,
-                            'sku': item_sku,
-                            'name': item_name,
-                            'discount': line_discount
-                        }
-                    )
-                    result.add_suggested_fix(
-                        f"Remove discount from Line {line_number} ({item_name}) - Z items must have 0% discount"
-                    )
+                # if not is_z_discount_item and (item_name.startswith('Z') or item_sku.startswith('Z')) and line_discount > 0:
+                #     result.add_issue(
+                #         f"Line {line_number} ({item_sku} - {item_name}): "
+                #         f"Items starting with 'Z' should not have discount, but has {line_discount}% discount",
+                #         severity='error',
+                #         details={
+                #             'line_number': line_number,
+                #             'sku': item_sku,
+                #             'name': item_name,
+                #             'discount': line_discount
+                #         }
+                #     )
+                #     result.add_suggested_fix(
+                #         f"Remove discount from Line {line_number} ({item_name}) - Z items must have 0% discount"
+                #     )
                 
                 # Track Z_DISCOUNT items for rule 4
                 if is_z_discount_item:
@@ -143,41 +143,41 @@ class DiscountValidator(BaseValidator):
                 # Skip items with invalid discount values
                 result.add_info(f"Line {item.get('line_number', '?')}: Skipped due to invalid data - {str(e)}")
         
-        # Rule 4: Check if total discount (including Z_DISCOUNT) exceeds threshold
+        # Rule 4: Check if total discount (including Z_DISCOUNT) exceeds threshold (DISABLED)
         # Threshold = max(70%, customer_discount%)
         # Calculation: Use original prices (before discounts) vs final subtotal
-        if total_original_price > 0:
-            # Calculate actual total discount amount
-            # Total discount = Original Price - Final Subtotal (which includes Z_DISCOUNT effect)
-            total_discount_amount = total_original_price - order_subtotal
-            actual_discount_percentage = (total_discount_amount / total_original_price) * 100
-            
-            # Determine threshold: use customer discount if > 70%, otherwise use 70%
-            discount_threshold = max(70.0, customer_discount)
-            
-            if actual_discount_percentage > discount_threshold:
-                result.add_issue(
-                    f"Total discount ${total_discount_amount:.2f} ({actual_discount_percentage:.1f}%) "
-                    f"exceeds allowed threshold of {discount_threshold:.1f}%",
-                    severity='error',
-                    details={
-                        'total_discount_amount': total_discount_amount,
-                        'total_original_price': total_original_price,
-                        'order_subtotal': order_subtotal,
-                        'actual_percentage': actual_discount_percentage,
-                        'threshold': discount_threshold,
-                        'customer_discount': customer_discount,
-                        'has_z_discount': has_z_discount,
-                        'z_discount_amount': z_discount_amount if has_z_discount else 0
-                    }
-                )
-                # Calculate how much discount needs to be reduced
-                max_allowed_discount = total_original_price * (discount_threshold / 100)
-                excess_discount = total_discount_amount - max_allowed_discount
-                result.add_suggested_fix(
-                    f"Reduce total discount by ${excess_discount:.2f} to meet the {discount_threshold:.1f}% threshold "
-                    f"(Current: ${total_discount_amount:.2f}, Maximum allowed: ${max_allowed_discount:.2f})"
-                )
+        # if total_original_price > 0:
+        #     # Calculate actual total discount amount
+        #     # Total discount = Original Price - Final Subtotal (which includes Z_DISCOUNT effect)
+        #     total_discount_amount = total_original_price - order_subtotal
+        #     actual_discount_percentage = (total_discount_amount / total_original_price) * 100
+        #     
+        #     # Determine threshold: use customer discount if > 70%, otherwise use 70%
+        #     discount_threshold = max(70.0, customer_discount)
+        #     
+        #     if actual_discount_percentage > discount_threshold:
+        #         result.add_issue(
+        #             f"Total discount ${total_discount_amount:.2f} ({actual_discount_percentage:.1f}%) "
+        #             f"exceeds allowed threshold of {discount_threshold:.1f}%",
+        #             severity='error',
+        #             details={
+        #                 'total_discount_amount': total_discount_amount,
+        #                 'total_original_price': total_original_price,
+        #                 'order_subtotal': order_subtotal,
+        #                 'actual_percentage': actual_discount_percentage,
+        #                 'threshold': discount_threshold,
+        #                 'customer_discount': customer_discount,
+        #                 'has_z_discount': has_z_discount,
+        #                 'z_discount_amount': z_discount_amount if has_z_discount else 0
+        #             }
+        #         )
+        #         # Calculate how much discount needs to be reduced
+        #         max_allowed_discount = total_original_price * (discount_threshold / 100)
+        #         excess_discount = total_discount_amount - max_allowed_discount
+        #         result.add_suggested_fix(
+        #             f"Reduce total discount by ${excess_discount:.2f} to meet the {discount_threshold:.1f}% threshold "
+        #             f"(Current: ${total_discount_amount:.2f}, Maximum allowed: ${max_allowed_discount:.2f})"
+        #         )
 
 
         

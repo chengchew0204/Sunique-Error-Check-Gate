@@ -19,6 +19,12 @@ class ErrorTrackerService:
         Args:
             storage_file: Path to JSON file for storing pending errors
         """
+        # Use LOGS_DIR environment variable if set (for Lambda)
+        import os
+        logs_dir = os.environ.get('LOGS_DIR', 'logs')
+        if storage_file.startswith('logs/'):
+            storage_file = storage_file.replace('logs/', f'{logs_dir}/', 1)
+        
         self.storage_file = Path(storage_file)
         self.storage_file.parent.mkdir(exist_ok=True)
         self._ensure_storage_file()

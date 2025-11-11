@@ -1,7 +1,15 @@
 from typing import Dict, Any, List
 from datetime import datetime
 from app.validators.base import BaseValidator, ValidationResult
-from app.services.error_tracker_service import error_tracker_service
+import os
+
+# Use DynamoDB tracker if running in Lambda (AWS), otherwise use file-based tracker
+if os.environ.get('AWS_LAMBDA_FUNCTION_NAME'):
+    from app.services.dynamodb_error_tracker import dynamodb_error_tracker as error_tracker_service
+    print("Using DynamoDB error tracker (persistent)")
+else:
+    from app.services.error_tracker_service import error_tracker_service
+    print("Using file-based error tracker (local development)")
 
 
 class ValidationService:
@@ -18,10 +26,17 @@ class ValidationService:
     def register_validator(self, validator: BaseValidator) -> None:
         """
         Register a validator to be used in validation.
+        Prevents duplicate registrations of the same validator class.
         
         Args:
             validator: Instance of a validator class
         """
+        # Check if this validator class is already registered
+        validator_class = type(validator)
+        if any(isinstance(v, validator_class) for v in self.validators):
+            print(f"Validator '{validator.rule_name}' already registered - skipping duplicate")
+            return
+        
         self.validators.append(validator)
         print(f"Registered validator: {validator.rule_name}")
     

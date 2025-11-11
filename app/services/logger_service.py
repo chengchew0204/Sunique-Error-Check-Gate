@@ -18,6 +18,8 @@ class LoggerService:
         Args:
             log_directory: Directory to store log files
         """
+        # Use LOGS_DIR environment variable if set (for Lambda)
+        log_directory = os.environ.get('LOGS_DIR', log_directory)
         self.log_directory = Path(log_directory)
         self.log_directory.mkdir(exist_ok=True)
     

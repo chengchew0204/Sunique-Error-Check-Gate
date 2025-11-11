@@ -5,6 +5,12 @@ This handler wraps the Flask application for serverless execution.
 """
 
 import json
+import sys
+import os
+
+# Add parent directory to path so we can import app module
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 from app.main import app, initialize_validators
 
 

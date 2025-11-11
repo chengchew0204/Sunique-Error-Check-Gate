@@ -211,10 +211,10 @@ def initialize_validators():
     """
     from app.validators import (
         OrderFetcher, 
-        DiscountValidator, 
-        CreditCardFeeValidator, 
+        DiscountValidator,
+        # CreditCardFeeValidator,  # Deactivated - kept for reference
         AssemblyFeeValidator,
-        DeliveryFeeValidator,
+        # DeliveryFeeValidator,  # Deactivated - kept for reference
         DiscountRemarkValidator,
         ReturnReasonValidator
     )
@@ -224,21 +224,21 @@ def initialize_validators():
     order_fetcher = OrderFetcher()
     validation_service.register_validator(order_fetcher)
     
-    # Phase 1: Discount validation (DISABLED - code preserved for reference)
-    # discount_validator = DiscountValidator()
-    # validation_service.register_validator(discount_validator)
+    # Phase 1: Discount validation (includes TUK item validation)
+    discount_validator = DiscountValidator()
+    validation_service.register_validator(discount_validator)
     
-    # Phase 2: Credit card fee validation
-    credit_card_validator = CreditCardFeeValidator()
-    validation_service.register_validator(credit_card_validator)
+    # Phase 2: Credit card fee validation (DISABLED - code preserved for reference)
+    # credit_card_validator = CreditCardFeeValidator()
+    # validation_service.register_validator(credit_card_validator)
     
     # Phase 3: Assembly fee validation
     assembly_fee_validator = AssemblyFeeValidator()
     validation_service.register_validator(assembly_fee_validator)
     
-    # Phase 4: Delivery fee validation
-    delivery_fee_validator = DeliveryFeeValidator()
-    validation_service.register_validator(delivery_fee_validator)
+    # Phase 4: Delivery fee validation (DISABLED - code preserved for reference)
+    # delivery_fee_validator = DeliveryFeeValidator()
+    # validation_service.register_validator(delivery_fee_validator)
     
     # Phase 5: Discount remark validation
     discount_remark_validator = DiscountRemarkValidator()

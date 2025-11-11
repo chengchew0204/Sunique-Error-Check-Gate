@@ -1,8 +1,17 @@
 import time
+import os
 from datetime import datetime
 from typing import Dict, Any, List
 from threading import Thread
-from app.services.error_tracker_service import error_tracker_service
+
+# Use DynamoDB tracker if running in Lambda (AWS), otherwise use file-based tracker
+if os.environ.get('AWS_LAMBDA_FUNCTION_NAME'):
+    from app.services.dynamodb_error_tracker import dynamodb_error_tracker as error_tracker_service
+    print("Error Monitor: Using DynamoDB error tracker (persistent)")
+else:
+    from app.services.error_tracker_service import error_tracker_service
+    print("Error Monitor: Using file-based error tracker (local development)")
+
 from app.clients.inflow_client import inflow_client
 from app.services.logger_service import logger_service
 from app.services.notification_service import notification_service

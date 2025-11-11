@@ -7,28 +7,55 @@ provider:
   name: aws
   runtime: python3.9
   stage: ${opt:stage, 'dev'}
-  region: us-east-1
+  region: us-east-2
   memorySize: 512
   timeout: 30
+  deploymentBucket:
+    name: inflow-error-check-gate-deployment-${aws:accountId}
+    serverSideEncryption: AES256
   
   environment:
+    # InFlow API
     INFLOW_API_KEY: ${env:INFLOW_API_KEY}
     INFLOW_COMPANY_ID: ${env:INFLOW_COMPANY_ID}
     INFLOW_API_BASE_URL: ${env:INFLOW_API_BASE_URL}
+    
+    # Webhook
     WEBHOOK_SECRET: ${env:WEBHOOK_SECRET}
-    ONEDRIVE_CLIENT_ID: ${env:ONEDRIVE_CLIENT_ID}
-    ONEDRIVE_CLIENT_SECRET: ${env:ONEDRIVE_CLIENT_SECRET}
-    ONEDRIVE_TENANT_ID: ${env:ONEDRIVE_TENANT_ID}
+    
+    # OneDrive (optional - can use SharePoint credentials as fallback)
+    ONEDRIVE_CLIENT_ID: ${env:ONEDRIVE_CLIENT_ID, env:SHAREPOINT_CLIENT_ID}
+    ONEDRIVE_CLIENT_SECRET: ${env:ONEDRIVE_CLIENT_SECRET, env:SHAREPOINT_CLIENT_SECRET}
+    ONEDRIVE_TENANT_ID: ${env:ONEDRIVE_TENANT_ID, env:SHAREPOINT_TENANT_ID}
+    DELIVERY_RECORD_FILE_PATH: ${env:DELIVERY_RECORD_FILE_PATH, ''}
+    
+    # SharePoint
+    SHAREPOINT_CLIENT_ID: ${env:SHAREPOINT_CLIENT_ID, env:ONEDRIVE_CLIENT_ID}
+    SHAREPOINT_CLIENT_SECRET: ${env:SHAREPOINT_CLIENT_SECRET, env:ONEDRIVE_CLIENT_SECRET}
+    SHAREPOINT_TENANT_ID: ${env:SHAREPOINT_TENANT_ID, env:ONEDRIVE_TENANT_ID}
+    SHAREPOINT_HOSTNAME: ${env:SHAREPOINT_HOSTNAME, 'suniquecabinetry.sharepoint.com'}
+    SHAREPOINT_SITE_NAME: ${env:SHAREPOINT_SITE_NAME, 'sccr'}
+    SHAREPOINT_DELIVERY_RECORD_ID: ${env:SHAREPOINT_DELIVERY_RECORD_ID}
+    SHAREPOINT_CACHE_ENABLED: ${env:SHAREPOINT_CACHE_ENABLED, 'False'}
+    
+    # Outlook
     OUTLOOK_CLIENT_ID: ${env:OUTLOOK_CLIENT_ID}
     OUTLOOK_CLIENT_SECRET: ${env:OUTLOOK_CLIENT_SECRET}
     OUTLOOK_TENANT_ID: ${env:OUTLOOK_TENANT_ID}
+    
+    # Email
     ADMIN_EMAILS: ${env:ADMIN_EMAILS}
-    DELIVERY_RECORD_FILE_PATH: ${env:DELIVERY_RECORD_FILE_PATH}
-    CREDIT_CARD_FEE_PERCENTAGE: ${env:CREDIT_CARD_FEE_PERCENTAGE}
+    EMAIL_FROM_ADDRESS: ${env:EMAIL_FROM_ADDRESS, 'info@suniquecabinetry.com'}
+    EMAIL_TESTING_MODE: ${env:EMAIL_TESTING_MODE, 'False'}
+    TEST_EMAIL_RECIPIENT: ${env:TEST_EMAIL_RECIPIENT, ''}
+    
+    # Business Logic
+    CREDIT_CARD_FEE_PERCENTAGE: ${env:CREDIT_CARD_FEE_PERCENTAGE, '0.03'}
+    TUK_IDENTIFIER_PATTERN: ${env:TUK_IDENTIFIER_PATTERN, 'TUK'}
 
 functions:
   webhook:
-    handler: serverless/handler.lambda_handler
+    handler: handler.lambda_handler
     events:
       - http:
           path: /webhook/inflow
@@ -46,11 +73,39 @@ functions:
           path: /history/{order_id}
           method: get
           cors: false
+      - http:
+          path: /monitor/check
+          method: post
+          cors: false
+      - http:
+          path: /monitor/status
+          method: get
+          cors: false
+  
+  # Scheduled function to check for expired pending errors (replaces background thread)
+  errorMonitor:
+    handler: handler.lambda_handler
+    events:
+      - schedule:
+          rate: rate(5 minutes)
+          enabled: true
+          input:
+            httpMethod: POST
+            path: /monitor/check
 
 plugins:
+  - serverless-dotenv-plugin
   - serverless-python-requirements
 
 custom:
+  dotenv:
+    path: ../.env
+    basePath: ./
+    include:
+      - INFLOW_API_KEY
+      - INFLOW_COMPANY_ID
+      - INFLOW_API_BASE_URL
+      - WEBHOOK_SECRET
   pythonRequirements:
     dockerizePip: true
     zip: true
@@ -60,4 +115,19 @@ custom:
     useStaticCache: true
     useDownloadCache: true
     cacheLocation: .serverless/.requirements-cache
+    fileName: ../requirements.txt
+
+package:
+  individually: false
+  patterns:
+    - '!../.git/**'
+    - '!../venv/**'
+    - '!../node_modules/**'
+    - '!../tests/**'
+    - '!../__pycache__/**'
+    - '!../logs/**'
+    - '!../*.pyc'
+    - '!../.env'
+    - 'handler.py'
+    - '../app/**'
 

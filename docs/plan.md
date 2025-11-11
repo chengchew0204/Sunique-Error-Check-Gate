@@ -195,6 +195,28 @@ Python webhook server (Flask/FastAPI) that:
 - Test cache expiration (wait 5+ minutes)
 - Confirm notifications and logs
 
+**Go/No-Go**: Only proceed to Phase 5 after full verification
+
+---
+
+### Phase 5: Finalizer - Notification & Processing
+
+**Implementation** (`app/validators/rule-finalizer.py`):
+- Collect all validation results from previous rules
+- Determine overall order status
+- Prepare comprehensive notification
+- Send email to appropriate recipients
+- Update any external systems if needed
+
+**Integration**:
+- Register finalizer in `app/main.py` (MUST BE LAST!)
+- Ensure it runs after all other validators
+
+**Testing**:
+- Test notification content and formatting
+- Verify correct recipient selection
+- Test various failure combinations
+
 **Go/No-Go**: Only proceed to deployment after full verification
 
 ---

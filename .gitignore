@@ -53,6 +53,9 @@ htmlcov/
 # Serverless
 .serverless/
 node_modules/
+.serverless-deploy_accessKeys.csv
+*accessKeys*.csv
+package-lock.json
 
 # ngrok
 ngrok
