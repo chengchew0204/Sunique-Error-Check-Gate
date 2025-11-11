@@ -239,6 +239,5 @@ serverless logs -f webhook --stage prod --tail
 ---
 
 **Last Updated:** November 11, 2025  
-**Webhook ID:** a6af9336-e0b7-4824-b9af-b117b243ed2d  
 **Production URL:** https://ahl9t9ati7.execute-api.us-east-2.amazonaws.com/prod/webhook/inflow
 
